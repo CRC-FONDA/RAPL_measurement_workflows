@@ -8,5 +8,5 @@ authors:
 date-released: 2025-05-19
 version: 1.0.0
 doi: 10.48550/arXiv.2505.09375
-url: https://github.com/thammphx/rapl-measurement-workflows
+url: https://github.com/CRC-FONDA/RAPL_measurement_workflows
 message: "If you use this work, please cite our arXiv paper and link to this repository."
