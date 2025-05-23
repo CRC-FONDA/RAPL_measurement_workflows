@@ -1,0 +1,90 @@
+Instructions for RAPL energy measurement on a compute cluster using Kubernetes and Nextflow
+
+Prerequisites:
+-A working installation of Docker on the cluster.
+-A working installation of Kubernetes on the cluster.
+-A connection to the cluster via comand-line interface with the ability to issue commands using kubectl.
+-The fourth method requires a running installation of Prometheus.
+
+Pods and PVCs:
+-Important: It might be necessary to change names and addresses in some of the configuration files to adapt them to your hardware.
+-Deploy the pods for energy measurement and their respective PVCs using "kubectl apply -f pv-pvc-pod-c37.yaml" and "kubectl apply -f pv-pvc-pod-c38.yaml".
+-Deploy the pod for executiong workflows using "kubectl apply -f pod_nextflow.yaml". Note that you need a PVC in order to store data on the cluster. Configure pod_nextflow.yaml to mount your PVC. If you do not have a PVC, create one similar to pv-pvc-pod-c37.yaml, but with enough storage space to store all your data. (It might be a good idea to consult your system administrator beforehand.)
+-Optionally, also deploy a pod for testing and access to the cluster while executing a workflow using "kubectl apply -f pod_example.yaml".
+
+Prepare a Nextflow workflow:
+-Select a Nextflow workflow to run on the cluster. If you don not have your own workflow, you can find a selection of Nextflow workflows on nf-core. Note that some changes in the configuration parameters might be necessary for successful execution on a compute cluster. Most important, Kubernetes must be specified as the executor. This looks something like this (in nextflow.config):
+
+docker {
+   enabled = true
+}
+
+process.executor = 'k8s'
+//process.scratch = true
+process.pod.nodeSelector = 'usedby=thammphi'
+k8s.pod.nodeSelector = 'usedby=thammphi'
+
+k8s {
+    debug {
+       yaml = true
+    }
+   namespace = 'thammphi'
+   context = 'thammphi'
+   runAsUser = 0
+   storageClaimName = 'thammphi-pvc'
+   storageMountPath = '/data'
+   fetchNodeName = true
+}
+
+trace {
+   enabled = true
+   file = 'exp_shtest_trace_run'
+   fields = 'task_id, hash, native_id, process, tag, name, hostname, status, exit, module, container, cpus, time, disk, memory, attempt, submit, start, complete, duration, realtime, queue, %cpu, %mem, rss, vmem, peak_rss, peak_vmem, rchar, wchar, syscr, syscw, read_bytes, write_bytes, vol_ctxt, inv_ctxt, env, workdir, script, scratch, error_action'
+   overwrite = true
+}
+
+report {
+   enabled = true
+   file = 'exp_shtest_report.html'
+   overwrite = true
+}
+
+Prepare RAPL measurement:
+-Copy the .sh files to the cluster using "kubectl cp /local/path/to/collect_energy_data_c37.sh pod-name:/cluster/target/path/collect_energy_data_c37.sh" and similar instructions for the other files. Make sure the target path matches the path defined in pv-pvc-pod-c37.yaml so the script is able to read RAPL counters at the specified path.
+-After copying the files, you can test if reading the RAPL counters works. Access a bash shell in an existing pod (e.g. the test-pod) by using "kubectl exec -n thammphi -it test-pod -- bash", then navigate to the folder of the measurement scripts. Use "bash /path/to/collect_energy_data_c37.sh /path/to/File_CPU_energy_output.txt /path/to/File_DRAM_energy_output.txt" to start the energy measurement. If everything is configured correctly, the script should write the values of the Package and DRAM domain of RAPL to two files called File_CPU_energy_output.txt and File_DRAM_energy_output.txt.
+
+Energy measurement:
+-If manually starting the scripts for energy measurements works, everything is ready to implement any of the four methods for automatic management of the measurement process.
+
+1. Task-based:
+-Add the instructions to write the start signal and stop signal to a .txt file to your Nextflow workflow as shown in Example_main_RNASeq_guide.txt.
+-Start the script for automatic energy measurement (auto_collect_energy_data_c38.sh) on every(!) node that is used during workflow execution. You need a separate energy pod running on each node to start the script.
+-After he scripts on all nodes have been started, start your workflow. The measurement should be started automatically when the file signaling the start of the workflow has been detected.
+
+2. Shell-script:
+-Make sure that all paths specified in the shell script (start_Workflow_Energy.sh) are set correctly.
+-Start the script using "bash start_Workflow_Energy.sh". No prior starting of the measurement scripts is necessary when using this method.
+-The script automatically starts the energy measurement, executes the workflow, cleans up the workspace and copies the results.
+-Note that this method requires a continuous connection between your local machine and the cluster.
+
+3. Plugin:
+-Build a custom Docker image that contains the standard nextflow pod and our proof-of-concept plugin for managing the energy measurement by following the instructions in the guide.
+-After your custom Docker image has been built and the pod containing the plugin is running, start the script for automatic energy measurement (auto_collect_energy_data_c38.sh) on every(!) node that is used during workflow execution.
+-Start your workflow in the pod as usual, but with the added parameter "-plugins nf-hello@0.6.0".
+
+4. Prometheus:
+-This method does not require the custom pods for energy measurement or any other prerequisite, only a running installation of Prometheus.
+-Run your workflow as usual.
+-Use "kubectl port-forward -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 9090:9090" in the terminal to start port-forwarding to the Prometheus pod.
+-Open a browser and go to "http://localhost:9090" to access the Prometheus monitoring interface.
+Get the power consumption in watt from the interface using the query "node_hwmon_power_average_watt".
+-A full Prometheus query to get the full energy consumed by each node during a time period looks like this:
+sum_over_time(node_hwmon_power_average_watt{instance=~"node1:port|node2:port"}[workflow_duration_in_seconds] @ end_time_as_unix_timestamp) * scrape_interval
+A specific example for two nodes of our cluster, a time of 1482 seconds at the unix timestamp 1743745341 using a scrape interval of 10 seconds:
+sum_over_time(node_hwmon_power_average_watt{instance=~"10.0.0.37:9100|10.0.0.38:9100"}[1482s] @ 1743745341) * 10
+
+Evaluate results:
+-After the RAPL counters have been recorded during workflow execution, they need to be processed in order to extract the energy consumption (except for the method using Prometheus).
+-Copy the resulting .txt files to your machine using "kubectl cp" as in the shell script.
+-Use the Python program to extract the energy consumption by using "python3 energy_evaluation.py". Note: This requires an installation of python3 and any additional packages used in the program. The program also requires the trace_run file generated during workflow execution (if the respective parameter is set correctly) to extract the timestamps where the workflow and individual workflow tasks start and end.
+-After the program has finished running, you can read the energy consumption of the workflow and individual workflow tasks from the output on the command line. The output is also saved to a file for later usage.

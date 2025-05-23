@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: "Strategies to Measure Energy Consumption Using RAPL During Workflow Execution on Commodity Clusters"
+authors:
+  - family-names: Thamm
+    given-names: Philipp
+  - family-names: Leser
+    given-names: Ulf
+date-released: 2025-05-19
+version: 1.0.0
+doi: 10.48550/arXiv.2505.09375
+url: https://github.com/thammphx/rapl-measurement-workflows
+message: "If you use this work, please cite our arXiv paper and link to this repository."

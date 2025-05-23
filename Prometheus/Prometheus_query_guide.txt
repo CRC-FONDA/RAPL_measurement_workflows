@@ -1,0 +1,12 @@
+Access Prometheus UI:
+1. Start wireguard VPN. (This is only necessary if access to the cluster and its tools is limited.)
+2. Use "kubectl port-forward -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 9090:9090" in the terminal to start port-forwarding to the Prometheus pod.
+3. Open a browser and go to "http://localhost:9090" to access the Prometheus monitoring interface.
+4. Get power consumption in watt using "node_hwmon_power_average_watt".
+
+Prometheus query:
+sum_over_time(node_hwmon_power_average_watt{instance=~"node1:port|node2:port"}[workflow_duration_in_seconds] @ end_time_as_unix_timestamp) * scrape_interval
+
+Example:
+Scrape interval: 10s
+Query: sum_over_time(node_hwmon_power_average_watt{instance=~"10.0.0.37:9100|10.0.0.38:9100"}[1482s] @ 1743745341) * 10

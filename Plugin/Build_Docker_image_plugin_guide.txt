@@ -1,0 +1,12 @@
+Steps to create and use a custom Nextflow image with the plugin:
+1. Make the changes to the plugin.
+2. Build the plugin with "./gradlew clean build" in the plugin folder.
+3. Copy the resulting plugin folder with the name of the plugin in build/plugins to the folder of the Dockerfile.
+4. Create the Dockerfile (important!: The Dockerfile must be named 'dockerfile') with the following content:
+FROM nextflow/nextflow:24.10.4
+RUN mkdir /.nextflow/plugins
+COPY nf-hello-0.6.0 /.nextflow/plugins/nf-hello-0.6.0
+5. Build the Dockerfile with 'docker build -t thammphx/nextflow_plugin .'.
+6. Push the Dockerfile to the Docker Hub with 'docker push thammphx/nextflow_plugin'.
+(6.5) Check if the plugin was added correctly by running the pushed Dockerfile on the cluster with an interactive shell by using 'nextflow kuberun login -v thammphi-pvc:/data -head-image thammphx/nextflow_plugin:latest'.
+7. Run the workflow with the plugin and using the custom built Docker image for the control node on the cluster with 'nextflow kuberun /data/Simon_data/example-rnaseq-workflow/main.nf -v thammphi-pvc:/data -head-image thammphx/nextflow_plugin:latest -plugins nf-hello@0.6.0'.

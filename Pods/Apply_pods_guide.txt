@@ -1,0 +1,7 @@
+To set up the pv, pvc and start the pods, use the following command:
+kubectl apply -f file-name.yaml
+e.g.
+kubectl apply -f pv-pvc-pod-c37.yaml
+
+Note that some parameters such as names, paths, and storage capacities might need to be changed to match the available infrastructure.
+In order to access the paths leading to the RAPL counter registers and read them, root privileges are necessary. The person configuring the pv and pvc needs to have access to root privileges to create a working setup.

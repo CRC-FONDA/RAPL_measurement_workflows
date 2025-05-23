@@ -1,0 +1,6 @@
+To execute the Python script for energy evaluation, use the following command in the terminal:
+python3 energy_evaluation.py
+
+Note that a working installation of Python 3 and the packages used in the program are necessary to run the program. Some paths might need to be adjusted to correctly point to the files containing information about the workflow execution and energy consumption.
+
+Important usage information: The part of the script calculating task-based energy consumption only works correctly if no tasks are running concurrently on the same node. If any tasks run in parallel, the program will assign the full energy used by all concurrent tasks together to each of the tasks. As a result, both the energy consumption of the individual tasks and the total energy consumption are overestimated by the program. If any concurrent tasks exist in the respective workflow execution, please only refer to the last part of the program. It calculates the energy of the whole workflow without calculating the energy of individual tasks first, thereby avoiding adding the same energy value multiple times and calculating accurate results for total energy consumption even for workflows with concurrent tasks.

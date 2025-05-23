@@ -1,0 +1,15 @@
+The bash scripts contain commands to execute the following steps in the indicated order.
+1. Set up the workspace on the cluster by deleting old files.
+2. Start RAPL energy monitoring on each used node on the cluster.
+3. Start the execution of the Nextflow workflow on the cluster using "nextflow kuberun" OR using "nextflow run" remotely.
+4. Monitor workflow execution and wait for it to complete.
+5. After the workflow finished running, stop the energy monitoring.
+6. Copy all relevant generated files containing information about the workflow execution and its energy consumption from the cluster to the local machine of the user.
+7. Remove the generated files from the cluster.
+8. Delete any remaining pods left over from execution of the workflow.
+9. Run Python script for energy evaluation.
+
+Run the script by using the following command in the terminal:
+bash start_workflow_energy.sh
+
+Note that the paths in the script need to be changed in order to be correct for your infrastructure.

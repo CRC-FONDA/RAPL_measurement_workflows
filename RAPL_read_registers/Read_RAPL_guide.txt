@@ -1,0 +1,6 @@
+To execute one of the scripts for monitoring Intel RAPL, use the following command:
+bash /path/to/collect_energy_data_c37.sh /path/to/File_CPU_energy_output.txt /path/to/File_DRAM_energy_output.txt
+e.g.
+bash /private-data/collect_energy_data_c37.sh /private-data/energy_log_c37.txt /private-data/energy_DRAM_log_c37.txt
+
+Note that the paths in the scripts need to be adjusted to match your infrastructure and especially the paths configured when setting up the necessary Persistent Volume Claim.
